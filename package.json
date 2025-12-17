@@ -9,12 +9,26 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@liveblocks/client": "^3.11.1",
+    "@liveblocks/react": "^3.11.1",
+    "@liveblocks/yjs": "^3.11.1",
+    "@liveblocks/zustand": "^3.11.1",
+    "clsx": "^2.1.1",
+    "downloadjs": "^1.4.7",
+    "html-to-image": "^1.11.13",
+    "lucide-react": "^0.561.0",
     "next": "16.0.10",
     "react": "19.2.1",
-    "react-dom": "19.2.1"
+    "react-dom": "19.2.1",
+    "reactflow": "^11.11.4",
+    "tailwind-merge": "^3.4.0",
+    "y-webrtc": "^10.3.0",
+    "yjs": "^13.6.27",
+    "zustand": "^5.0.9"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/downloadjs": "^1.4.6",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
