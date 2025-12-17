@@ -1,4 +1,4 @@
-# HogBoard 🐗
+# HogBoarding
 
 **Winning with PostHog**
 
