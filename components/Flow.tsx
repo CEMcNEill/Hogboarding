@@ -37,7 +37,12 @@ function Flow({ roomId }: { roomId: string }) {
     }, [enterRoom, leaveRoom, roomId]); // Re-enter if roomId changes
 
     // Selectors
-    const nodes = useStore((state) => state.nodes);
+    const rawNodes = useStore((state) => state.nodes);
+    const selectedNodeIds = useStore((state) => state.selectedNodeIds);
+    const nodes = React.useMemo(() => rawNodes.map((node) => ({
+        ...node,
+        selected: selectedNodeIds.includes(node.id),
+    })), [rawNodes, selectedNodeIds]);
     const edges = useStore((state) => state.edges);
     const onNodesChange = useStore((state) => state.onNodesChange);
     const onEdgesChange = useStore((state) => state.onEdgesChange);

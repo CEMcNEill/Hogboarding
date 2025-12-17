@@ -4,7 +4,7 @@
 
 HogBoard is a collaborative "Customer Success Map" tool designed for PostHog Solution Engineers. It enables teams to visualize a prospect's current data stack and map out their journey to adopting the PostHog Product OS.
 
-![HogBoard Screenshot](https://raw.githubusercontent.com/posthog/hogboard/main/public/screenshot.png) *(Placeholder)*
+![HogBoard Screenshot](*(Placeholder)*
 
 ## Features
 
