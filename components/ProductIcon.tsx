@@ -20,6 +20,7 @@ import {
     LayoutTemplate,
     BookOpen,
     MessageCircle,
+    StickyNote,
 } from 'lucide-react';
 
 export type ProductIconType =
@@ -42,7 +43,8 @@ export type ProductIconType =
     | 'bi'
     | 'website'
     | 'docs'
-    | 'community';
+    | 'community'
+    | 'sticky-note';
 
 const iconMap: Record<ProductIconType, React.ElementType> = {
     toggle: ToggleLeft,
@@ -65,6 +67,7 @@ const iconMap: Record<ProductIconType, React.ElementType> = {
     website: LayoutTemplate,
     docs: BookOpen,
     community: MessageCircle,
+    'sticky-note': StickyNote,
 };
 
 export function ProductIcon({ type, className }: { type: string; className?: string }) {

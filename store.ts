@@ -15,12 +15,19 @@ import type { WithLiveblocks } from '@liveblocks/zustand';
 type FlowState = {
     nodes: Node[];
     edges: Edge[];
+    futureNodes: Node[];
+    futureEdges: Edge[];
+    viewMode: 'current' | 'future';
     selectedNodeIds: string[];
     onNodesChange: (changes: NodeChange[]) => void;
     onEdgesChange: (changes: EdgeChange[]) => void;
     onConnect: (connection: Connection) => void;
     addNode: (node: Node) => void;
     setNodes: (nodes: Node[]) => void;
+    setViewMode: (mode: 'current' | 'future') => void;
+    copyCurrentToFuture: () => void;
+    updateNodeData: (id: string, data: any) => void;
+    deleteNode: (id: string) => void;
 };
 
 import { createClient } from '@liveblocks/client';
@@ -34,7 +41,21 @@ const useStore = create<WithLiveblocks<FlowState>>()(
         (set, get) => ({
             nodes: [],
             edges: [],
+            futureNodes: [],
+            futureEdges: [],
             selectedNodeIds: [],
+            viewMode: 'current',
+            setViewMode: (mode) => set({ viewMode: mode }),
+            copyCurrentToFuture: () => {
+                const { nodes, edges } = get();
+                // Deep copy to avoid reference issues, though structured clone or simple spread usually enough for serializable data
+                // We want to ensure unique IDs if we were adding to existing, but here we replace.
+                // However, we probably want to keep IDs same to track "modifications" vs "new".
+                set({
+                    futureNodes: JSON.parse(JSON.stringify(nodes)),
+                    futureEdges: JSON.parse(JSON.stringify(edges)),
+                });
+            },
             onNodesChange: (changes) => {
                 // 1. Handle selection changes locally
                 const selectionChanges = changes.filter((change) => change.type === 'select');
@@ -65,7 +86,9 @@ const useStore = create<WithLiveblocks<FlowState>>()(
 
                 if (otherChanges.length === 0) return;
 
-                const currentNodes = get().nodes;
+                const { viewMode } = get();
+                const isFuture = viewMode === 'future';
+                const currentNodes = isFuture ? get().futureNodes : get().nodes;
                 const nextNodes = applyNodeChanges(otherChanges, currentNodes);
 
                 // IMPORTANT: Ensure no node in the shared state is marked as selected.
@@ -80,30 +103,90 @@ const useStore = create<WithLiveblocks<FlowState>>()(
                     return node;
                 });
 
-                set({
-                    nodes: storedNodes,
-                });
+                if (isFuture) {
+                    set({ futureNodes: storedNodes });
+                } else {
+                    set({ nodes: storedNodes });
+                }
             },
             onEdgesChange: (changes) => {
-                set({
-                    edges: applyEdgeChanges(changes, get().edges),
-                });
+                const { viewMode } = get();
+                const isFuture = viewMode === 'future';
+                const currentEdges = isFuture ? get().futureEdges : get().edges;
+                const nextEdges = applyEdgeChanges(changes, currentEdges);
+
+                if (isFuture) {
+                    set({ futureEdges: nextEdges });
+                } else {
+                    set({ edges: nextEdges });
+                }
             },
             onConnect: (connection) => {
-                set({
-                    edges: addEdge(connection, get().edges),
-                });
+                const { viewMode } = get();
+                const isFuture = viewMode === 'future';
+                const currentEdges = isFuture ? get().futureEdges : get().edges;
+                const nextEdges = addEdge(connection, currentEdges);
+
+                if (isFuture) {
+                    set({ futureEdges: nextEdges });
+                } else {
+                    set({ edges: nextEdges });
+                }
             },
             addNode: (node) => {
                 // Ensure we don't accidentally save 'selected: true' to the shared store
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 const { selected, ...nodeData } = node;
-                set({
-                    nodes: [...get().nodes, nodeData],
-                });
+
+                const { viewMode } = get();
+                if (viewMode === 'future') {
+                    set({
+                        futureNodes: [...get().futureNodes, nodeData],
+                    });
+                } else {
+                    set({
+                        nodes: [...get().nodes, nodeData],
+                    });
+                }
             },
             setNodes: (nodes) => {
-                set({ nodes });
+                const { viewMode } = get();
+                if (viewMode === 'future') {
+                    set({ futureNodes: nodes });
+                } else {
+                    set({ nodes });
+                }
+            },
+            updateNodeData: (id, data) => {
+                const { viewMode } = get();
+                const isFuture = viewMode === 'future';
+                const targetNodes = isFuture ? get().futureNodes : get().nodes; // Correctly select source
+
+                const updatedNodes = targetNodes.map((node) => {
+                    if (node.id === id) {
+                        return { ...node, data: { ...node.data, ...data } }; // Merge data
+                    }
+                    return node;
+                });
+
+                if (isFuture) {
+                    set({ futureNodes: updatedNodes });
+                } else {
+                    set({ nodes: updatedNodes });
+                }
+            },
+            deleteNode: (id) => {
+                const { viewMode } = get();
+                const isFuture = viewMode === 'future';
+                const targetNodes = isFuture ? get().futureNodes : get().nodes;
+
+                const filteredNodes = targetNodes.filter((n) => n.id !== id);
+
+                if (isFuture) {
+                    set({ futureNodes: filteredNodes });
+                } else {
+                    set({ nodes: filteredNodes });
+                }
             },
         }),
         {
@@ -111,6 +194,8 @@ const useStore = create<WithLiveblocks<FlowState>>()(
             storageMapping: {
                 nodes: true,
                 edges: true,
+                futureNodes: true,
+                futureEdges: true,
             },
         }
     )

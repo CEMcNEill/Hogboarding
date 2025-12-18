@@ -13,9 +13,11 @@ import useStore from '../store';
 import Cursors from './Cursors';
 
 import CustomNode from './CustomNode';
+import AnnotationNode from './AnnotationNode';
 
 const nodeTypes = {
     customNode: CustomNode,
+    annotation: AnnotationNode,
 };
 
 import { toPng } from 'html-to-image';
@@ -37,13 +39,22 @@ function Flow({ roomId }: { roomId: string }) {
     }, [enterRoom, leaveRoom, roomId]); // Re-enter if roomId changes
 
     // Selectors
-    const rawNodes = useStore((state) => state.nodes);
+    const viewMode = useStore((state) => state.viewMode);
+    const rawCurrentNodes = useStore((state) => state.nodes);
+    const rawFutureNodes = useStore((state) => state.futureNodes);
+
+    // Derived state for nodes
+    const rawNodes = viewMode === 'future' ? rawFutureNodes : rawCurrentNodes;
+
     const selectedNodeIds = useStore((state) => state.selectedNodeIds);
     const nodes = React.useMemo(() => rawNodes.map((node) => ({
         ...node,
         selected: selectedNodeIds.includes(node.id),
     })), [rawNodes, selectedNodeIds]);
-    const edges = useStore((state) => state.edges);
+
+    const currentEdges = useStore((state) => state.edges);
+    const futureEdges = useStore((state) => state.futureEdges);
+    const edges = viewMode === 'future' ? futureEdges : currentEdges;
     const onNodesChange = useStore((state) => state.onNodesChange);
     const onEdgesChange = useStore((state) => state.onEdgesChange);
     const onConnect = useStore((state) => state.onConnect);
@@ -66,9 +77,6 @@ function Flow({ roomId }: { roomId: string }) {
             }
 
             const type = event.dataTransfer.getData('application/reactflow/type');
-            const label = event.dataTransfer.getData('application/reactflow/label');
-            const iconType = event.dataTransfer.getData('application/reactflow/iconType');
-            const category = event.dataTransfer.getData('application/reactflow/category');
 
             if (typeof type === 'undefined' || !type) {
                 return;
@@ -80,13 +88,29 @@ function Flow({ roomId }: { roomId: string }) {
                 y: event.clientY,
             });
 
-            const newNode = {
-                id: `${type}-${Date.now()}`,
-                type: 'customNode',
-                position,
-                data: { label: label || `${type} node`, iconType, category },
-                style: {} // CustomNode handles styling
-            };
+            let newNode;
+
+            if (type === 'annotation') {
+                newNode = {
+                    id: `${type}-${Date.now()}`,
+                    type: 'annotation',
+                    position,
+                    data: { label: 'New Note', color: 'yellow' },
+                    style: { width: 200, height: 200 },
+                };
+            } else {
+                const label = event.dataTransfer.getData('application/reactflow/label');
+                const iconType = event.dataTransfer.getData('application/reactflow/iconType');
+                const category = event.dataTransfer.getData('application/reactflow/category');
+
+                newNode = {
+                    id: `${type}-${Date.now()}`,
+                    type: 'customNode',
+                    position,
+                    data: { label: label || `${type} node`, iconType, category },
+                    style: {} // CustomNode handles styling
+                };
+            }
 
             addNode(newNode);
         },
